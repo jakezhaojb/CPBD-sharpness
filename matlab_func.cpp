@@ -96,6 +96,7 @@ struct data{
       return n < rhs.n;
     }
   };
+
 void vector_sort_with_index(vector<double>& x, int* index){
   int i;
   vector<data> x_;
@@ -123,4 +124,46 @@ VectorXd unique(MatrixXd x){
   return vec_assign_mat(temp, 1);
 }
 
+int length(MatrixXd x){
+  return max(x.rows(), x.cols());
+}
 
+void gradient(MatrixXd x, MatrixXd& gx, MatrixXd& gy){
+  int i, j;
+  for (i = 0; i < x.rows(); i++) {
+    gx(i, 0) = x(i, 1) - x(i, 0);
+    gx(i, x.cols()-1) = x(i, x.cols()-1) - x(i, x.cols()-2);
+  }
+  for (i = 0; i < x.cols(); i++) {
+    gy(0, i) = x(1, i) - x(0, i);
+    gy(x.rows()-1, i) = x(x.rows()-1, i) - x(x.rows()-2, i);
+  }
+  for (i = 1; i < x.rows()-1; i++) {
+    for (j = 1; j < x.cols()-1; j++) {
+      gx(i, j) = (x(i, j+1) - x(i, j-1)) / 2;
+      gy(i, j) = (x(i+1, j) - x(i-1, j)) / 2;
+    }
+  }
+}
+
+
+void mat_find(MatrixXd x, double obj, int *& pos_r, int *& pos_c, int& n){
+  vector<double> x_ = mat_assign_vec(x);
+  vector<int> pos;
+  vector<double>::iterator it = x_.begin();
+  while(it != x_.end()){
+    if (*it == obj) {
+      pos.push_back(it-x_.begin());
+    }
+    it++;
+  }
+  // assign coordinates
+  // We need to manually release the spaces.
+  pos_r = new int[pos.size()];
+  pos_c = new int[pos.size()];
+  for (int i = 0; i < pos.size(); i++) {
+    pos_r[i] = pos[i] % x.rows();
+    pos_c[i] = pos[i] / x.rows();
+  }
+  n = pos.size();
+}
