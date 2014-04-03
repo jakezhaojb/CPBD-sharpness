@@ -21,6 +21,7 @@ vector<double> mat_assign_vec(MatrixXd x){
   return obj;
 }
 
+// Transfrom from std::vector to Eigen:VectorXd
 VectorXd vec_assign_mat(vector<double> x, bool order){
   if (!order) {
     // Fortran order, ColVector
@@ -40,11 +41,12 @@ VectorXd vec_assign_mat(vector<double> x, bool order){
   }
 }
 
+// Transform from std::vector to Eigen::MatrixXd
 MatrixXd vec_assign_mat(vector<double> x, int rows, int cols, bool order){
   int i, j;
   MatrixXd obj(rows, cols);
   if (order) {
-   r // C++ order, row
+    // C++ order, row
     for (i = 0; i < cols; i++) 
       for (j = 0; j < rows; j++) 
         obj(i ,j) = x[i*cols+j];
@@ -58,6 +60,7 @@ MatrixXd vec_assign_mat(vector<double> x, int rows, int cols, bool order){
   return obj;
 }
 
+// Eigen::MatrixXd sort without rows and cols! 
 VectorXd one_dim_mat_sort(MatrixXd x, bool order){
   if (x.rows()!=1 && x.cols()!=1) {
     cout<<"Wrong input 1d_mat_sort function\n"<<endl;
@@ -70,6 +73,7 @@ VectorXd one_dim_mat_sort(MatrixXd x, bool order){
   return sorted_1d_mat;
 }
 
+// Eigen::MatrixXd sort with rows and cols! 
 MatrixXd mat_sort(MatrixXd x, bool order){
   MatrixXd obj(x.rows(), x.cols());
   int i, j;
@@ -89,6 +93,7 @@ MatrixXd mat_sort(MatrixXd x, bool order){
 }
 
 
+// std::vector sort with indexes using std::sort
 struct data{
     double n;
     int index;
@@ -111,6 +116,8 @@ void vector_sort_with_index(vector<double>& x, int* index){
   }
 }
 
+// Get a "clean" version Eigen::VectorXd whose elements are all from raw Eigen::MatrixXd
+// but no replicated ones!
 VectorXd unique(MatrixXd x){
   x.resize(x.size(), 1);
   VectorXd sorted_x = mat_sort(x, 1);
@@ -124,10 +131,12 @@ VectorXd unique(MatrixXd x){
   return vec_assign_mat(temp, 1);
 }
 
+// matlab function: length
 int length(MatrixXd x){
   return max(x.rows(), x.cols());
 }
 
+// matlab function: gradient
 void gradient(MatrixXd x, MatrixXd& gx, MatrixXd& gy){
   int i, j;
   for (i = 0; i < x.rows(); i++) {
@@ -147,6 +156,7 @@ void gradient(MatrixXd x, MatrixXd& gx, MatrixXd& gy){
 }
 
 
+// matlab function: find
 void mat_find(MatrixXd x, double obj, int *& pos_r, int *& pos_c, int& n){
   vector<double> x_ = mat_assign_vec(x);
   vector<int> pos;
