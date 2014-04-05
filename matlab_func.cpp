@@ -5,11 +5,11 @@
 #include <vector>
 #include <string>
 #include <Eigen/Dense>
-//#include <cv.h>
-//#include <highgui.h>
+#include <cv.h>
+#include <highgui.h>
 
 using namespace std;
-//using namespace cv;
+using namespace cv;
 using namespace Eigen;
 
 // Transform from matlab matrix to Eigen::MatrixXd
@@ -177,3 +177,34 @@ void mat_find(MatrixXd x, double obj, int *& pos_r, int *& pos_c, int& n){
   }
   n = pos.size();
 }
+
+void blkproc(MatrixXd& x, int m, int n, MatrixXd fun(MatrixXd, int), int para1){
+  int i, j;
+  if (x.rows() % m != 0 || x.cols() % n != 0) {
+    std::cout << "Warning! blkproc function can't slice image to perfect blocks" << std::endl;
+    // Await to process this condition
+    for (i = 0; i < x.rows()/m; i++) {
+     for (j = 0; j < x.cols()/n; j++) {
+       fun(x.block(i*(m-1), j*(n-1), i*m, j*n), para1); 
+     }
+    }
+  }else{
+    for (i = 0; i < x.rows()/m; i++) {
+      for (j = 0; j < x.cols()/n; j++) {
+        fun(x.block(i*(m-1), j*(n-1), i*m, j*n), para1); 
+      }
+    }
+  }
+}
+
+cv::Mat mat_to_cvmat(MatrixXd obj){
+
+}
+
+MatrixXd cvmat_to_mat(cv::Mat obj){
+
+}
+
+//edge
+
+
