@@ -9,7 +9,6 @@
 #include <highgui.h>
 
 using namespace std;
-using namespace cv;
 using namespace Eigen;
 
 // Transform from matlab matrix to Eigen::MatrixXd
@@ -198,13 +197,50 @@ void blkproc(MatrixXd& x, int m, int n, MatrixXd fun(MatrixXd, int), int para1){
 }
 
 cv::Mat mat_to_cvmat(MatrixXd obj){
-
+  int nl = obj.rows();
+  int nc = obj.cols();
+  int i, j;
+  cv::Mat _obj(nl, nc);
+  for (i = 0; i < nl; i++) {
+    uchar* data = _obj.ptr<uchar>(i);
+    for (j = 0; j < nc; j++) {
+      data[j] = obj(i, j);
+    }
+  }
+  return _obj;
 }
 
 MatrixXd cvmat_to_mat(cv::Mat obj){
-
+  int nl = obj.rows;
+  int nc = obj.cols;
+  int i, j;
+  MatrixXd _obj(nl, nc);
+  for (i = 0; i < nl; i++) {
+    uchar* data = obj.ptr<uchar>(i);
+    for (j = 0; j < nc; j++) {
+      _obj(i, j) = data[j];
+    }
+  }
+  return _obj;
 }
 
-//edge
+//edge canny
+MatrixXd edg_canny(MatrixXd src){
+  MatrixXd dst;
+  cv::Mat _src = mat_to_cvmat(src);
+  cv::Canny(_src, _src, 1, 3, 3); // paras??/
+  dst = cvmat_to_mat(_src);
+  return dst;
+}
 
+// edge sobel
+MatrixXd edge_sobel(MatrixXd src){
+  MatrixXd dst;
+  cv::Mat _src = mat_to_cvmat(src);
+  cv::Sobel(_src, _src, CV_16S, 0, 1, 3);
+  cv::Threshold(_src, _src, 2, 255, 3);
+  dst = cvmat_to_mat(_src);
+  return dst;
+}
 
+// 
