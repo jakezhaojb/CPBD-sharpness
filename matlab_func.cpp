@@ -28,6 +28,7 @@ VectorXd vec_assign_mat(vector<double> x, bool order){
     for (int i = 0; i < x.size(); i++) {
       obj(i) = x[i];
     }
+    x.
     return obj;
   }
   else{
