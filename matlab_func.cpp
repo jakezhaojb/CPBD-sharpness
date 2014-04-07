@@ -1,15 +1,5 @@
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <cstdlib>
-#include <vector>
-#include <string>
-#include <Eigen/Dense>
-#include <cv.h>
-#include <highgui.h>
+#include "matlab_func.h"
 
-using namespace std;
-using namespace Eigen;
 
 // Transform from matlab matrix to Eigen::MatrixXd
 vector<double> mat_assign_vec(MatrixXd x){
