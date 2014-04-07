@@ -1,102 +1,27 @@
-#include <iostream>
-#include <string.h>
-#include <cmath>
-#include <math.h>
-#include "opencv/highgui.h"
-#include "opencv/cv.h"
-#include <armadillo>  
-#include "time.h"  
-
+#include "cpdb_compute.h"
 
 #define PI        3.14159265358979323846
 #define threshold 0.002
 #define beta      3.6
 #define block_num 10
 
-using namespace std;
-using namespace cv;
-using namespace arma;
-
-///**
-// * Perform one thinning iteration.
-// * Normally you wouldn't call this function directly from your code.
-// *
-// * @param  im    Binary image with range = 0-1
-// * @param  iter  0=even, 1=odd
-// */
-//void thinningIteration(cv::Mat& im, int iter)
-//{
-//    cv::Mat marker = cv::Mat::zeros(im.size(), CV_8UC1);
-//
-//    for (int i = 1; i < im.rows-1; i++)
-//    {
-//        for (int j = 1; j < im.cols-1; j++)
-//        {
-//            uchar p2 = im.at<uchar>(i-1, j);
-//            uchar p3 = im.at<uchar>(i-1, j+1);
-//            uchar p4 = im.at<uchar>(i, j+1);
-//            uchar p5 = im.at<uchar>(i+1, j+1);
-//            uchar p6 = im.at<uchar>(i+1, j);
-//            uchar p7 = im.at<uchar>(i+1, j-1);
-//            uchar p8 = im.at<uchar>(i, j-1);
-//            uchar p9 = im.at<uchar>(i-1, j-1);
-//
-//            int A  = (p2 == 0 && p3 == 1) + (p3 == 0 && p4 == 1) + 
-//                     (p4 == 0 && p5 == 1) + (p5 == 0 && p6 == 1) + 
-//                     (p6 == 0 && p7 == 1) + (p7 == 0 && p8 == 1) +
-//                     (p8 == 0 && p9 == 1) + (p9 == 0 && p2 == 1);
-//            int B  = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
-//            int m1 = iter == 0 ? (p2 * p4 * p6) : (p2 * p4 * p8);
-//            int m2 = iter == 0 ? (p4 * p6 * p8) : (p2 * p6 * p8);
-//
-//            if (A == 1 && (B >= 2 && B <= 6) && m1 == 0 && m2 == 0)
-//                marker.at<uchar>(i,j) = 1;
-//        }
-//    }
-//
-//    im &= ~marker;
-//}
-//
-///**
-// * Function for thinning the given binary image
-// *
-// * @param  im  Binary image with range = 0-255
-// */
-//void thinning(IplImage* im1)
-//{
-//	cv::Mat im(im1); 
-//	im /= 255;
-//
-//    cv::Mat prev = cv::Mat::zeros(im.size(), CV_8UC1);
-//    cv::Mat diff;
-//
-//    do {
-//        thinningIteration(im, 0);
-//        thinningIteration(im, 1);
-//        cv::absdiff(im, prev, diff);
-//        im.copyTo(prev);
-//    } 
-//    while (cv::countNonZero(diff) > 0);
-//
-//    im *= 255;
-//	im1= &IplImage(im);
-//}
-
-//opencvÍ¼Ïñ->arma::mat
-arma::mat cv_img2arma_mat(IplImage* img,int M,int N)
+// IplImage -> arma::mat 
+arma::mat cv_img2arma_mat(IplImage* img)
 {
+  int i, j;
 	arma::mat dst;
-	cv::Mat sobelImg_mat(img);
-	cv::Mat_<uchar> img_ = img;
-	dst.zeros(M,N);
-	for(int i=0;i<M;i++)
-	{
-		for(int j=0;j<N;j++)
-		{
-			dst(i,j)=img_(i,j);
-		}
-	}
-	return dst;
+  uchar* data = (uchar*)img->imageData;
+  int step = img->widthStep;
+
+  // initialize dst
+	dst.zeros(img->height, img->width);
+
+  for (i = 0; i < img->height; i++) {
+    for (j = 0; j < img->width; j++) {
+      dst(i, j)  = data[i*step+j];
+    }
+  }
+  return dst;
 }
 
 //matlab->edge with sobel
@@ -111,26 +36,6 @@ void edge_sobel(IplImage* image_origin,IplImage* sobelall)
 	cvSetImageROI(image,roi_rect);
 	cvCopy(image_origin,image);
 	cvResetImageROI(image);
-	//CvScalar a;
-	//a=cvGet2D(image,1,1); 
-	//cvSet2D(image,0,0,a); 
-	//a=cvGet2D(image,1,image_origin->width); 
-	//cvSet2D(image,0,image_origin->width+1,a); 
-	//a=cvGet2D(image,image_origin->height,1); 
-	//cvSet2D(image,image_origin->height+1,0,a); 
-	//a=cvGet2D(image,image_origin->height,image_origin->width); 
-	//cvSet2D(image,image_origin->height+1,image_origin->width+1,a); 
-	//double time,time2;
-	//clock_t start,finish,mid;
-	//start=clock();
-	//for(int i=1;i<image->height-1;i++)
-	//{
-	//	CvScalar a,b;
-	//	a=cvGet2D(image,i,1); 
-	//	cvSet2D(image,i,0,a);		
-	//	b=cvGet2D(image,i,image->width-2); 
-	//	cvSet2D(image,i,image->width-1,b);	
-	//}
 	for(int j=1;j<image->width-1;j++)
 	{
 		CvScalar a,b;
@@ -278,7 +183,7 @@ void _AdaptiveFindThreshold(CvMat *dx, CvMat *dy, double *low, double *high)
 	cvReleaseImage( &imge );                                               
 	cvReleaseHist(&hist);                                                  
 }                                                                              
-void AdaptiveFindThreshold(const CvArr* image, double *low, double *high, int aperture_size=3)
+void AdaptiveFindThreshold(const CvArr* image, double *low, double *high, int aperture_size)
 {                                                                              
 	cv::Mat src = cv::cvarrToMat(image);                                   
 	const int cn = src.channels();                                         
@@ -365,6 +270,7 @@ arma::mat gradientY(arma::mat gray_image)
 		
 	return gradientY_mat;
 }
+
 arma::mat gradientX(arma::mat gray_image)
 {
 	arma::mat gradientX_mat;
@@ -403,7 +309,7 @@ void marziliano_method(IplImage* sobelImg, IplImage* gray_img,IplImage* width)
 	M=gray_img->height;
 	N=gray_img->width;
 	arma::mat gray_image_mat;
-	gray_image_mat=cv_img2arma_mat(gray_img,M,N);
+	gray_image_mat=cv_img2arma_mat(gray_img);
 	arma::mat grad_x_mat_;
 	arma::mat grad_y_mat_;
 	//**************
@@ -419,9 +325,9 @@ void marziliano_method(IplImage* sobelImg, IplImage* gray_img,IplImage* width)
 	//std::cout <<"gradient_time="<<time_fun <<"ms"<<std::endl;
 	////
 	arma::mat E;
-	E=cv_img2arma_mat(sobelImg,M,N);
+	E=cv_img2arma_mat(sobelImg);
 	arma::mat A;
-	A=cv_img2arma_mat(gray_img,M,N);
+	A=cv_img2arma_mat(gray_img);
 	arma::mat angle_A;
 	angle_A.zeros(M,N);	
 	CvScalar s;
@@ -580,7 +486,7 @@ double cpdbm(IplImage* gray_img)
 	int rb=max_sq/block_num;
 	int rc=rb;
 	IplImage* sobelImg  = cvCreateImage(cvSize(nWidth, nHeight),IPL_DEPTH_8U, 1);
-    IplImage* cannyImg  = cvCreateImage(cvSize(nWidth, nHeight),IPL_DEPTH_8U, 1);
+  IplImage* cannyImg  = cvCreateImage(cvSize(nWidth, nHeight),IPL_DEPTH_8U, 1);
 	IplImage* smooth_dst  = cvCreateImage(cvSize(nWidth, nHeight),IPL_DEPTH_8U, 1);
 	///************
 	//clock_t start, finish,mid;   
@@ -687,23 +593,17 @@ int main(int argc, char** argv)
 	//std::cout <<"total_time="<<time_fun <<"ms"<<std::endl;
 	//cvWaitKey(0);
     //cvDestroyWindow("RGB");	
-	
-	fstream fout;
-	fout.open("output1.txt"); 
 	char filename[20];
-	for(int i=0; i<535; i++) 
-	{ 
-		sprintf(filename, ".//tp1//m (%d).jpg", i+1); 
-		img=cvLoadImage(filename,1);
-	    gray = cvCreateImage(cvGetSize(img),img->depth,1);
-		//cvShowImage("RGB",img);
-		//cvShowImage("gray",gray);
-		cvCvtColor(img,gray,CV_BGR2GRAY);
-	    start=clock();
-		double cpdbm_value=cpdbm(gray);
-		finish=clock();
-		time_fun=double(finish-start); 
-		fout << filename << "  "<<cpdbm_value<<"  "<< time_fun<< "ms"<<"\n";
-    }  
-	fout << flush; fout.close();
+  sprintf(filename, "face1.jpg"); 
+  img=cvLoadImage(filename,1);
+  gray = cvCreateImage(cvGetSize(img),img->depth,1);
+  //cvShowImage("RGB",img);
+  //cvShowImage("gray",gray);
+  cvCvtColor(img,gray,CV_BGR2GRAY);
+  start=clock();
+  double cpdbm_value=cpdbm(gray);
+  finish=clock();
+  time_fun=double(finish-start); 
+  std::cout << "Using time: " << time_fun/1000. << "ms" << std::endl;
+  std::cout << cpdbm_value << std::endl;
 }
