@@ -17,8 +17,8 @@ using namespace arma;
 
 arma::mat cv_img2arma_mat(IplImage* img);
 void edge_sobel(IplImage* image_origin,IplImage* sobelall);
-void _AdaptiveFindThreshold(CvMat *dx, CvMat *dy, double *low, double *high);
-void AdaptiveFindThreshold(const CvArr* image, double *low, double *high, int aperture_size=3);
+void _AdaptiveFindThreshold(IplImage *dx, CvMat *dy, double &low, double &high);
+void AdaptiveFindThreshold(const IplImage* image, double &low, double &high, int aperture_size=3);
 double get_contrast_block(IplImage* gray_region_Img);
 bool get_edge_blk_decision(IplImage* canny_region_Img,double threshold_);
 arma::mat gradientY(arma::mat gray_image);

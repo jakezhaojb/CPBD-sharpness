@@ -4,6 +4,7 @@
 #define threshold 0.002
 #define beta      3.6
 #define block_num 10
+#define debug 1
 
 // IplImage -> arma::mat 
 arma::mat cv_img2arma_mat(IplImage* img)
@@ -36,6 +37,7 @@ void edge_sobel(IplImage* image_origin,IplImage* sobelall)
 	cvSetImageROI(image,roi_rect);
 	cvCopy(image_origin,image);
 	cvResetImageROI(image);
+  // extend the image with fringes' data
 	for(int j=1;j<image->width-1;j++)
 	{
 		CvScalar a,b;
@@ -72,6 +74,7 @@ void edge_sobel(IplImage* image_origin,IplImage* sobelall)
 			CvScalar sx; 
 			//CvScalar sy; 
 
+      // why 除以 8
 			sx.val[0] =(s1.val[0] - s3.val[0] + 2*(s4.val[0] - s6.val[0]) + s7.val[0] - s9.val[0])/8; 
 			//sy.val[0] =(s1.val[0] - s7.val[0] + 2*(s2.val[0] - s8.val[0]) + s3.val[0] - s9.val[0])/8; 
 
@@ -80,9 +83,6 @@ void edge_sobel(IplImage* image_origin,IplImage* sobelall)
 			}
 		} 
 	} 
-	//mid=clock();
-	//time=double(mid-start);
-	//std::cout<<"sobel_1step="<<time<<"ms"<<endl;
 	IplImage* sobelall_16S=cvCreateImage(cvSize(image_origin->width, image_origin->height),IPL_DEPTH_16S, 1);
 	cvCopy(sobelgx,sobelall_16S);
 	for(int i=0;i<sobelall_16S->height;i++)
@@ -91,17 +91,12 @@ void edge_sobel(IplImage* image_origin,IplImage* sobelall)
 		{
 			CvScalar c;
 			c =cvGet2D(sobelall_16S,i,j); 
-			//if(i==0||i==sobelall_16S->height-1)
-			//{
-			//	c.val[0]=0;
-			//	cvSet2D(sobelall,i,j,c); 
-			//}
-			//else
 			if(j!=0&&j!=sobelall_16S->width-1)
 			{
 				CvScalar c1,c2;
 				c1 =cvGet2D(sobelall_16S,i,j-1); 
 				c2 =cvGet2D(sobelall_16S,i,j+1); 
+        // Why this!
 				if(c.val[0]>=2||c.val[0]<=-2)
 				{
 					if(abs(c.val[0])>abs(c1.val[0]))
@@ -122,13 +117,35 @@ void edge_sobel(IplImage* image_origin,IplImage* sobelall)
 			}
 		}
 	}
-	//finish=clock();
-	//time2=double(finish-mid);
-	//std::cout<<"sobel_1step="<<time2<<"ms"<<endl;
+}
+
+// 430ms -> 260ms，30ms -> 20ms, 但是结果不同！
+// 有错误！！！
+void edge_sobel_new(IplImage* orig, IplImage* dst){
+  int i, j, step;
+  cvSobel(orig, dst, 0, 1, 3);
+  if (debug) {
+    cvNamedWindow("DEBUG1");
+    cvShowImage("DEBUG1", dst);
+    cvWaitKey(0);
+  }  // 8U没错 16S没错！！
+  int* data = (int*)dst->imageData;
+  step = dst->widthStep;
+  printf("%d\n", dst->height);
+  printf("%d\n", step);
+  for (i = 0; i < dst->height; i++) {
+    for (j = 0; j < dst->width; j++) {
+      //data[i*step+j] /= 9;
+      //data[i*step+j] = abs(data[i*step+j]);
+      printf("%d ", data[i*step+j]); // Here 错了！
+    }
+    printf("ok\n");
+  }
+  cvThreshold(dst, dst, 2, 255, CV_THRESH_BINARY);
 }
 
 // 仿照matlab，自适应求高低两个门限                                            
-void _AdaptiveFindThreshold(CvMat *dx, CvMat *dy, double *low, double *high)   
+void _AdaptiveFindThreshold(IplImage *dx, IplImage *dy, double &low, double &high)   
 {                                                                              
 	CvSize size;                                                           
 	IplImage *imge=0;                                                      
@@ -138,25 +155,36 @@ void _AdaptiveFindThreshold(CvMat *dx, CvMat *dy, double *low, double *high)
 	float range_0[]={0,256};                                               
 	float* ranges[] = { range_0 };                                         
 	double PercentOfPixelsNotEdges = 0.7;                                  
+
+  // Junbo Modify
+  int dx_step = dx->widthStep;
+  int dy_step = dy->widthStep;
+  float* dx_data = (float*)dx->imageData;
+  float* dy_data = (float*)dy->imageData;
+
+
 	size = cvGetSize(dx);                                                  
 	imge = cvCreateImage(size, IPL_DEPTH_32F, 1);                          
 	// 计算边缘的强度, 并存于图像中                                        
+  printf("ok\n");
 	float maxv = 0;                                                        
 	for(i = 0; i < size.height; i++ )                                      
 	{                                                                      
-		const short* _dx = (short*)(dx->data.ptr + dx->step*i);        
-		const short* _dy = (short*)(dy->data.ptr + dy->step*i);        
+		//const short* _dx = (short*)(dx->data.ptr + dx->step*i);        
+		//const short* _dy = (short*)(dy->data.ptr + dy->step*i);        
 		float* _image = (float *)(imge->imageData + imge->widthStep*i);
 		for(j = 0; j < size.width; j++)                                
 		{                                                              
-			_image[j] = (float)(abs(_dx[j]) + abs(_dy[j]));        
+			//_image[j] = (float)(abs(_dx[j]) + abs(_dy[j]));        
+			_image[j] = (float)(abs(dx_data[i*dx_step+j]) + abs(dy_data[i*dy_step+j]));        
+      printf("ok\n");
 			maxv = maxv < _image[j] ? _image[j]: maxv;             
 	                                                                       
 		}                                                              
 	}                                                                      
 	if(maxv == 0){                                                         
-		*high = 0;                                                     
-		*low = 0;                                                      
+		high = 0;                                                     
+		low = 0;                                                      
 		cvReleaseImage( &imge );                                       
 		return;                                                        
 	}                                                                      
@@ -178,23 +206,35 @@ void _AdaptiveFindThreshold(CvMat *dx, CvMat *dy, double *low, double *high)
 			break;                                                 
 	}                                                                      
 	// 计算高低门限                                                        
-	*high = (i+1) * maxv / hist_size ;                                     
-	*low = *high * 0.4;                                                    
+	high = (i+1) * maxv / hist_size ;                                     
+	low = high * 0.4;                                                    
 	cvReleaseImage( &imge );                                               
 	cvReleaseHist(&hist);                                                  
 }                                                                              
-void AdaptiveFindThreshold(const CvArr* image, double *low, double *high, int aperture_size)
+
+void AdaptiveFindThreshold(const IplImage* src, double &low, double &high, int aperture_size)
 {                                                                              
-	cv::Mat src = cv::cvarrToMat(image);                                   
-	const int cn = src.channels();                                         
-	cv::Mat dx(src.rows, src.cols, CV_16SC(cn));                           
-	cv::Mat dy(src.rows, src.cols, CV_16SC(cn));                           
-                                                                               
-	cv::Sobel(src, dx, CV_16S, 1, 0, aperture_size, 1, 0, 4);
-	cv::Sobel(src, dy, CV_16S, 0, 1, aperture_size, 1, 0, 4);
-                                                                               
-	CvMat _dx = dx, _dy = dy;                                              
-	_AdaptiveFindThreshold(&_dx, &_dy, low, high);                         
+  IplImage *dx, *dy;
+  // await to be released!!!
+  dx = cvCreateImage(cvGetSize(src), IPL_DEPTH_16S, src->nChannels);
+  dy = cvCreateImage(cvGetSize(src), IPL_DEPTH_16S, src->nChannels);
+  cvSobel(src, dx, 1, 0, aperture_size);
+  cvSobel(src, dy, 0, 1, aperture_size);
+  printf("ok\n");
+
+	//_dx = CvMat(dx);
+  //_dy = CvMat(dy);                                              
+	_AdaptiveFindThreshold(dx, dy, low, high);                         
+
+	//const int cn = src->channels();                                         
+	//cv::Mat dx(src->rows, src->cols, CV_16SC(cn));                           
+	//cv::Mat dy(src->rows, src->cols, CV_16SC(cn));                           
+  //                                                                             
+	//cv::Sobel(src, dx, CV_16S, 1, 0, aperture_size, 1, 0, 4);
+	//cv::Sobel(src, dy, CV_16S, 0, 1, aperture_size, 1, 0, 4);
+  //                                                                             
+	//CvMat _dx = dx, _dy = dy;                                              
+	//_AdaptiveFindThreshold(&_dx, &_dy, low, high);                         
                                                                                
 }     
 
@@ -230,7 +270,7 @@ bool get_edge_blk_decision(IplImage* canny_region_Img,double threshold_)
 	return im_out;
 }
 
-//matlab->gradient函数
+// matlab->gradient函数
 arma::mat gradientY(arma::mat gray_image)
 {
 	arma::mat gradientY_mat;
@@ -299,7 +339,7 @@ arma::mat gradientX(arma::mat gray_image)
 	return gradientX_mat;
 }
 
-//function [edge_width_map] = marziliano_method(E, A) 
+// function [edge_width_map] = marziliano_method(E, A) 
 void marziliano_method(IplImage* sobelImg, IplImage* gray_img,IplImage* width)
 {
 	int M, N;
@@ -488,21 +528,20 @@ double cpdbm(IplImage* gray_img)
 	IplImage* sobelImg  = cvCreateImage(cvSize(nWidth, nHeight),IPL_DEPTH_8U, 1);
   IplImage* cannyImg  = cvCreateImage(cvSize(nWidth, nHeight),IPL_DEPTH_8U, 1);
 	IplImage* smooth_dst  = cvCreateImage(cvSize(nWidth, nHeight),IPL_DEPTH_8U, 1);
-	///************
-	//clock_t start, finish,mid;   
-	//double time_fun,time_mid;
-	//start=clock();
-	///
-	double low = 0.0, high = 0.0;
-	edge_sobel(gray_img,sobelImg);
-	//cvShowImage("edge_sobel",sobelImg);
+  double low = 0.0, high = 0.0;
+  //edge_sobel(gray_img,sobelImg);
+  edge_sobel_new(gray_img, sobelImg);  //430ms -> 260ms, 30ms -> 20ms 
+  if (debug) {
+    cvShowImage("edge_sobel",sobelImg);
+    cvWaitKey(0);
+  }
 	///**********
 	//mid=clock();
 	//time_mid=double(mid-start);
 	//std::cout <<"edge_sobel_time="<<time_mid <<"ms"<<std::endl;
 	////
 	cvSmooth(gray_img,smooth_dst,CV_GAUSSIAN,5,5,2);
-	AdaptiveFindThreshold(smooth_dst, &low, &high);
+	AdaptiveFindThreshold(smooth_dst, low, high);
 	cvCanny(smooth_dst, cannyImg, low, high);
 	//thinning(cannyImg);//////////////////////
 	//cvShowImage("cannyImg",cannyImg);
@@ -582,18 +621,7 @@ int main(int argc, char** argv)
 	double time_fun;
 	IplImage* img ;
 	IplImage* gray;
-	//cvCvtColor(img,gray,CV_BGR2GRAY);
-	//cvNamedWindow("RGB");;
-	//cvShowImage("RGB",img);
-	//start=clock();
-	//double cpdbm_value=cpdbm(gray);
-	//finish=clock();
-	//time_fun=double(finish-start);
-	//std::cout << "cpdbm_value="<<cpdbm_value <<std::endl;
-	//std::cout <<"total_time="<<time_fun <<"ms"<<std::endl;
-	//cvWaitKey(0);
-    //cvDestroyWindow("RGB");	
-	char filename[20];
+  char filename[20];
   sprintf(filename, "face1.jpg"); 
   img=cvLoadImage(filename,1);
   gray = cvCreateImage(cvGetSize(img),img->depth,1);
