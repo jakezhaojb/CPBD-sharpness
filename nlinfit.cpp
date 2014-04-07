@@ -61,6 +61,10 @@ VectorXd batch_grad_desc(Vector4d beta_init, VectorXd x, VectorXd y, double step
   double cost, cost_;
 
   beta = beta_init;
+  if (debug) {
+    std::cout << beta << std::endl;
+    cin.get();
+  }
   cost = compute_cost(beta, x, y);
   for (i = 0; i < MaxIter; i++) {
     cost_ = cost;
@@ -78,11 +82,9 @@ VectorXd batch_grad_desc(Vector4d beta_init, VectorXd x, VectorXd y, double step
   return beta;
 }
 
-//代码有问题 cost在长！
-// 有的时候还一步到位。。。 // 代码有错！
 int main(int argc, const char *argv[])
 {
-  VectorXd x = VectorXd::Random(10000);
+  VectorXd x = VectorXd::Random(8002);
   VectorXd y = VectorXd::Random(x.size());
   Vector4d beta = VectorXd::Random(4);
   //beta << 0.9, 0.1, 0.5, 1.0;
