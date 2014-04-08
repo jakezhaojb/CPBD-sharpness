@@ -4,7 +4,7 @@
 #define threshold 0.002
 #define beta      3.6
 #define block_num 10
-#define debug 1
+#define debug 0
 
 // IplImage -> arma::mat 
 arma::mat cv_img2arma_mat(IplImage* img)
@@ -128,16 +128,20 @@ void edge_sobel_new(IplImage* orig, IplImage* dst){
     cvNamedWindow("DEBUG1");
     cvShowImage("DEBUG1", dst);
     cvWaitKey(0);
-  }  // 8U没错 16S没错！！
-  int* data = (int*)dst->imageData;
+    printf("DEBUG edge_sobel_new function: \n");
+  }  // 8U没错 16S出错！！
+  uchar* data = (uchar*)dst->imageData;
+  uchar* data_ = (uchar*)orig->imageData;
   step = dst->widthStep;
-  printf("%d\n", dst->height);
-  printf("%d\n", step);
   for (i = 0; i < dst->height; i++) {
     for (j = 0; j < dst->width; j++) {
-      //data[i*step+j] /= 9;
+      data[i*step+j] /= 8;
       //data[i*step+j] = abs(data[i*step+j]);
-      printf("%d ", data[i*step+j]); // Here 错了！
+      if (debug) {
+        printf("%d ", data_[i*step+j]);
+        printf("%d ", data[i*step+j]); // Here 错了！
+        cin.get();
+      }
     }
     printf("ok\n");
   }
@@ -148,7 +152,7 @@ void edge_sobel_new(IplImage* orig, IplImage* dst){
 void _AdaptiveFindThreshold(IplImage *dx, IplImage *dy, double &low, double &high)   
 {                                                                              
 	CvSize size;                                                           
-	IplImage *imge=0;                                                      
+	IplImage *imge;                                                      
 	int i,j;                                                               
 	CvHistogram *hist;                                                     
 	int hist_size = 255;                                                   
@@ -159,15 +163,17 @@ void _AdaptiveFindThreshold(IplImage *dx, IplImage *dy, double &low, double &hig
   // Junbo Modify
   int dx_step = dx->widthStep;
   int dy_step = dy->widthStep;
-  float* dx_data = (float*)dx->imageData;
-  float* dy_data = (float*)dy->imageData;
+  int* dx_data = (int*)dx->imageData;
+  int* dy_data = (int*)dy->imageData;
 
 
 	size = cvGetSize(dx);                                                  
 	imge = cvCreateImage(size, IPL_DEPTH_32F, 1);                          
 	// 计算边缘的强度, 并存于图像中                                        
   printf("ok\n");
-	float maxv = 0;                                                        
+	float max_val = 0;                                                        
+  printf("%d, %d\n", size.height, size.width);
+  cin.get();
 	for(i = 0; i < size.height; i++ )                                      
 	{                                                                      
 		//const short* _dx = (short*)(dx->data.ptr + dx->step*i);        
@@ -177,12 +183,13 @@ void _AdaptiveFindThreshold(IplImage *dx, IplImage *dy, double &low, double &hig
 		{                                                              
 			//_image[j] = (float)(abs(_dx[j]) + abs(_dy[j]));        
 			_image[j] = (float)(abs(dx_data[i*dx_step+j]) + abs(dy_data[i*dy_step+j]));        
-      printf("ok\n");
-			maxv = maxv < _image[j] ? _image[j]: maxv;             
+      printf("%d, %d is ok\n", i, j);
+      printf("%f\n", _image[j]);
+			max_val = max_val < _image[j] ? _image[j]: max_val;             
 	                                                                       
 		}                                                              
 	}                                                                      
-	if(maxv == 0){                                                         
+	if(max_val == 0){                                                         
 		high = 0;                                                     
 		low = 0;                                                      
 		cvReleaseImage( &imge );                                       
@@ -190,8 +197,8 @@ void _AdaptiveFindThreshold(IplImage *dx, IplImage *dy, double &low, double &hig
 	}                                                                      
                                                                                
 	// 计算直方图                                                          
-	range_0[1] = maxv;                                                     
-	hist_size = (int)(hist_size > maxv ? maxv:hist_size);                  
+	range_0[1] = max_val;                                                     
+	hist_size = (int)(hist_size > max_val ? max_val:hist_size);                  
 	hist = cvCreateHist(1, &hist_size, CV_HIST_ARRAY, ranges, 1);          
 	cvCalcHist( &imge, hist, 0, NULL );                                    
 	int total = (int)(size.height * size.width * PercentOfPixelsNotEdges); 
@@ -206,7 +213,7 @@ void _AdaptiveFindThreshold(IplImage *dx, IplImage *dy, double &low, double &hig
 			break;                                                 
 	}                                                                      
 	// 计算高低门限                                                        
-	high = (i+1) * maxv / hist_size ;                                     
+	high = (i+1) * max_val / hist_size ;                                     
 	low = high * 0.4;                                                    
 	cvReleaseImage( &imge );                                               
 	cvReleaseHist(&hist);                                                  
@@ -220,7 +227,21 @@ void AdaptiveFindThreshold(const IplImage* src, double &low, double &high, int a
   dy = cvCreateImage(cvGetSize(src), IPL_DEPTH_16S, src->nChannels);
   cvSobel(src, dx, 1, 0, aperture_size);
   cvSobel(src, dy, 0, 1, aperture_size);
-  printf("ok\n");
+
+  // depth不同的话 cvSobel输出的数据异常。
+  if (debug) {
+    int i, j;
+    int dx_step = dx->widthStep;
+    int dy_step = dy->widthStep;
+    int* dx_data = (int*)dx->imageData;
+    int* dy_data = (int*)dy->imageData;
+    for (i = 0; i < dx->height; i++) {
+      for (i = 0; i < dx->width; i++) {
+        printf("%d, %d\n", dx_data[i*dx_step+j], dy_data[i*dy_step+j]);
+        cin.get();
+      }
+    }
+  }
 
 	//_dx = CvMat(dx);
   //_dy = CvMat(dy);                                              
