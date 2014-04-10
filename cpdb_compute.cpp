@@ -4,7 +4,7 @@
 #define threshold 0.002
 #define beta      3.6
 #define block_num 10
-#define debug 0
+#define debug 1
 
 // IplImage -> arma::mat 
 arma::mat cv_img2arma_mat(IplImage* img)
@@ -123,13 +123,15 @@ void edge_sobel(IplImage* image_origin,IplImage* sobelall)
 // 有错误！！！
 void edge_sobel_new(IplImage* orig, IplImage* dst){
   int i, j, step;
-  cvSobel(orig, dst, 0, 1, 3);
+  IplImage* temp = cvCreateImage(cvGetSize(orig), IPL_DEPTH_16S, 1);
+  cvSobel(orig, temp, 0, 1, 3);
+  cvConvertScale(temp, dst, 1.0, 0);
   if (debug) {
     cvNamedWindow("DEBUG1");
     cvShowImage("DEBUG1", dst);
     cvWaitKey(0);
     printf("DEBUG edge_sobel_new function: \n");
-  }  // 8U没错 16S出错！！
+  }
   uchar* data = (uchar*)dst->imageData;
   uchar* data_ = (uchar*)orig->imageData;
   step = dst->widthStep;
@@ -146,6 +148,7 @@ void edge_sobel_new(IplImage* orig, IplImage* dst){
     printf("ok\n");
   }
   cvThreshold(dst, dst, 2, 255, CV_THRESH_BINARY);
+  cvReleaseImage(&temp);
 }
 
 // 仿照matlab，自适应求高低两个门限                                            
