@@ -26,7 +26,8 @@ arma::mat cv_img2arma_mat(IplImage* img)
 }
 
 //matlab->edge with sobel
-void edge_sobel(IplImage* image_origin,IplImage* sobelall)
+// Junbo: 没有优化！内存没有回收，情慎用。
+void edge_sobel(IplImage* image_origin, IplImage* sobelall)
 {
 	IplImage* image=cvCreateImage(cvSize(image_origin->width+2, image_origin->height+2),IPL_DEPTH_8U, 1);
 	CvRect roi_rect;
@@ -225,8 +226,8 @@ double get_contrast_block(IplImage* gray_region_Img)
 	double contrast;
 	double MinValue;
 	double MaxValue;
-	cvMinMaxLoc(gray_region_Img,& MinValue,& MaxValue);
-	contrast=MaxValue-MinValue;
+	cvMinMaxLoc(gray_region_Img, &MinValue, &MaxValue);
+	contrast = MaxValue-MinValue;
 	return contrast;
 }
 
@@ -248,6 +249,8 @@ bool get_edge_blk_decision(IplImage* canny_region_Img,double threshold_)
 		}
 	}
 	im_out = im_edge_pixels > (L*threshold) ;
+  input_imag.release();
+  input_imag_.release();
 	return im_out;
 }
 
@@ -500,10 +503,10 @@ double cpdbm(IplImage* gray_img)
 	IplImage* cannyImg_1;
 	IplImage* edge_width_map_1;
 	IplImage* gray_img_1;
+	IplImage* edge_width_map;
 	gray_img_1 = cvCreateImage(cvSize(rb, rc), gray_img->depth, gray_img->nChannels);
 	edge_width_map_1 = cvCreateImage(cvSize(rb, rc), cannyImg->depth, cannyImg->nChannels);
 	cannyImg_1 = cvCreateImage(cvSize(rb, rc), cannyImg->depth, cannyImg->nChannels);
-	IplImage* edge_width_map;
 	edge_width_map = cvCreateImage(cvGetSize(gray_img), gray_img->depth, gray_img->nChannels);
 	marziliano_method(sobelImg, gray_img, edge_width_map);
 	for(int p = 0; p <= nHeight-rb; p = p+rb)
@@ -557,13 +560,19 @@ double cpdbm(IplImage* gray_img)
 		 hist_pblur.zeros(1, 101);
 	 }
 	 cpdbm_value=accu(hist_pblur.cols(0, 63));
+   cvReleaseImage(&sobelImg);
+   cvReleaseImage(&cannyImg);
+   cvReleaseImage(&smooth_dst);
    cvReleaseImage(&cannyImg_1);
    cvReleaseImage(&edge_width_map_1);
    cvReleaseImage(&gray_img_1);
+   cvReleaseImage(&edge_width_map);
+   
 	 return cpdbm_value;
 }
 
 //main
+/*
 int main(int argc, char** argv)
 
 {
@@ -585,4 +594,4 @@ int main(int argc, char** argv)
   std::cout << "Using time: " << time_fun/1000. << "ms" << std::endl;
   std::cout << cpdbm_value << std::endl;
   cvReleaseImage(&gray);
-}
+}*/
