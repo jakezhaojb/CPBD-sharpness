@@ -86,6 +86,21 @@ void edge_sobel(IplImage* image_origin, IplImage* sobelall)
 	} 
 	IplImage* sobelall_16S=cvCreateImage(cvSize(image_origin->width, image_origin->height),IPL_DEPTH_16S, 1);
 	cvCopy(sobelgx,sobelall_16S);
+
+  uchar* data_sobelall_16S = (uchar*)sobelall_16S->imageData;
+  int ii, jj;
+  int step_sobelall_16S = sobelall_16S->widthStep;
+  for (ii = 0; ii < sobelall_16S->height; ii++) {
+    std::cout << ii << "th row!!!" << std::endl;
+    std::cout << "===========================================" << std::endl;
+    std::cout << "===========================================" << std::endl;
+    for (jj = 0; jj < sobelall_16S->width; jj++) {
+      std::cout << int(data_sobelall_16S[ii*step_sobelall_16S+jj]) << " ";
+    }
+    std::cout << "\n" << std::endl;
+  }
+ 
+
 	for(int i=0;i<sobelall_16S->height;i++)
 	{
 		for(int j=0;j<sobelall_16S->width;j++)
@@ -118,23 +133,49 @@ void edge_sobel(IplImage* image_origin, IplImage* sobelall)
 			}
 		}
 	}
+ 
 }
+
+
+// For DEBUG
+void printout2D(IplImage* img){
+  int i, j;
+  CvScalar c;
+  for (i = 0; i < img->height; i++) {
+    std::cout << "\n";
+    for (j = 0; j < img->width; j++) {
+      c = cvGet2D(img, i, j);
+      std::cout << setw(3) << c.val[0] <<" ";
+    }
+  }
+  std::cout << "\n" << std::endl;
+}
+
 
 // 430ms -> 260ms，30ms -> 20ms, 但是结果不同！
 void edge_sobel_new(IplImage* orig, IplImage* dst){
   int i, j, step;
+  CvScalar slr;
   IplImage* temp = cvCreateImage(cvGetSize(orig), IPL_DEPTH_16S, 1);
   cvSobel(orig, temp, 0, 1, 3);
-  cvConvertScale(temp, dst, 1.0, 0);
-  uchar* data = (uchar*)dst->imageData;
-  uchar* data_ = (uchar*)orig->imageData;
-  step = dst->widthStep;
-  for (i = 0; i < dst->height; i++) {
-    for (j = 0; j < dst->width; j++) {
-      data[i*step+j] /= 8;
-    }
-  }
+  cvConvertScaleAbs(temp, dst, 1.0, 0.0);
+
+  //for (i = 0; i < dst->height; i++) {
+  //  for (j = 0; j < dst->width; j++) {
+  //    slr.val[0] = cvGet2D(dst, i, j).val[0] / 8.;
+  //    cvSet2D(dst, i, j, slr);
+  //  }
+  //}
+  //
+  //std::cout << "temp" << std::endl;
+  //printout2D(temp);
+  //std::cout << "================" << std::endl;
+  //std::cout << "dst_first" << std::endl;
+  //printout2D(dst);
   cvThreshold(dst, dst, 2, 255, CV_THRESH_BINARY);
+  //std::cout << "================" << std::endl;
+  //std::cout << "dst_second" << std::endl;
+  //printout2D(dst);
   cvReleaseImage(&temp);
 }
 
@@ -572,7 +613,6 @@ double cpdbm(IplImage* gray_img)
 }
 
 //main
-/*
 int main(int argc, char** argv)
 
 {
@@ -581,7 +621,7 @@ int main(int argc, char** argv)
 	IplImage* img ;
 	IplImage* gray;
   char filename[20];
-  sprintf(filename, "face1.jpg"); 
+  sprintf(filename, argv[1]); 
   img=cvLoadImage(filename,1);
   gray = cvCreateImage(cvGetSize(img),img->depth,1);
   //cvShowImage("RGB",img);
@@ -594,4 +634,4 @@ int main(int argc, char** argv)
   std::cout << "Using time: " << time_fun/1000. << "ms" << std::endl;
   std::cout << cpdbm_value << std::endl;
   cvReleaseImage(&gray);
-}*/
+}
